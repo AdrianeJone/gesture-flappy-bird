@@ -27,14 +27,20 @@ bird_down = pygame.image.load('bird_down_flap.png').convert_alpha()
 bird_mid  = pygame.image.load('bird_mid_flap.png').convert_alpha()
 bird_up   = pygame.image.load('bird_up_flap.png').convert_alpha()
 
-# Put them in a list so we can cycle through them
+# Bird Animation list
 bird_frames = [bird_down, bird_mid, bird_up]
 bird_index = 0  # Starts at 0 (bird_down)
 bird_image = bird_frames[bird_index]
 
-# Custom timer event that goes off every 150 milliseconds
+# Bird flap timer event (every 150 milliseconds)
 BIRD_FLAP = pygame.USEREVENT + 1
 pygame.time.set_timer(BIRD_FLAP, 150)
+
+# Load Sound effects assets
+wing_sound = pygame.mixer.Sound('wing.wav')
+point_sound = pygame.mixer.Sound('point.wav')
+hit_sound = pygame.mixer.Sound('hit.wav')
+swoosh_sound = pygame.mixer.Sound('swoosh.wav')
 
 # Bird variables
 bird_x = 50                        # It stays on the left side of the screen
@@ -119,6 +125,7 @@ while running:
         if hand_is_open:
             if not hand_was_open:
                 bird_velocity_y = jump_strength
+                wing_sound.play()
                 hand_was_open = True
         else:
             hand_was_open = False
@@ -128,6 +135,7 @@ while running:
         bird_y += bird_velocity_y                                               # Move the bird based on its velocity
         if bird_y >= 550:                                                          
             game_active = False
+            hit_sound.play() 
             
         # Pipe Movement and Resetting    
         pipe_x += pipe_velocity
@@ -135,6 +143,7 @@ while running:
             pipe_x = 400                                                           # Reset it to the right side
             pipe_top_height = random.randint(100, 350)                             # Randomize the height of the top pipe
             score += 1
+            point_sound.play()
     
         # Collision Detection
         bird_rect = pygame.Rect(bird_x - 20, int(bird_y) - 20, 40, 40)
@@ -142,13 +151,15 @@ while running:
         pipe_bottom_rect = pygame.Rect(pipe_x, pipe_top_height + pipe_gap, pipe_width, 600)
         
         if bird_rect.colliderect(pipe_top_rect) or bird_rect.colliderect(pipe_bottom_rect): 
-            game_active = False                                                     
+            game_active = False
+            hit_sound.play()                                                      
     
     else:
         # Game Over Logic
         # If hand is open, reset game state
         if hand_is_open:
             game_active = True
+            swoosh_sound.play() 
             score = 0
             bird_y = 300
             bird_velocity_y = 0
