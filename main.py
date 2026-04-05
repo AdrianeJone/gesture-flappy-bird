@@ -7,7 +7,7 @@ from mediapipe.tasks.python import vision as mp_vision
 
 pygame.init()
 screen = pygame.display.set_mode((400, 600))
-pygame.display.set_caption("Interstellar: Event Horizon Escape") # UPDATED: Themed title
+pygame.display.set_caption("Gesture Flappy Bird") # Title of the game window
 clock = pygame.time.Clock()
 
 # MediaPipe Setup
@@ -18,8 +18,23 @@ cap = cv2.VideoCapture(1)  # Switch camera if needed
 
 # 2. Game Variables
 
-# Load Background Image
+# Load Game Object Assets
 bg_image = pygame.image.load('background.png').convert()
+base_image = pygame.image.load('base.png').convert()
+bottom_pipe_image = pygame.image.load('pipe.png').convert_alpha()
+top_pipe_image = pygame.transform.flip(bottom_pipe_image, False, True)
+bird_down = pygame.image.load('bird_down_flap.png').convert_alpha()
+bird_mid  = pygame.image.load('bird_mid_flap.png').convert_alpha()
+bird_up   = pygame.image.load('bird_up_flap.png').convert_alpha()
+
+# Put them in a list so we can cycle through them
+bird_frames = [bird_down, bird_mid, bird_up]
+bird_index = 0  # Starts at 0 (bird_down)
+bird_image = bird_frames[bird_index]
+
+# Custom timer event that goes off every 150 milliseconds
+BIRD_FLAP = pygame.USEREVENT + 1
+pygame.time.set_timer(BIRD_FLAP, 150)
 
 # Bird variables
 bird_x = 50                        # It stays on the left side of the screen
@@ -41,11 +56,7 @@ game_active = True
 hand_was_open = False
 running = True  
 
-pipe_top_rect = pygame.Rect(0,0,0,0)
-pipe_bottom_rect = pygame.Rect(0,0,0,0)
-bird_rect = pygame.Rect(0,0,0,0)
-
-# UPDATED: Sci-fi style Font
+# Font
 font = pygame.font.SysFont("Courier New", 28, bold=True) 
 
 # 3. Game Loop
@@ -90,6 +101,14 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        
+        # Flap animation logic    
+        if event.type == BIRD_FLAP:
+            bird_index += 1
+            if bird_index > 2:
+                bird_index = 0
+            bird_image = bird_frames[bird_index]
+            
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and game_active:         # If spacebar is pressed
             bird_velocity_y = jump_strength                                      # Make the bird jump by setting its velocity upwards
         
@@ -136,25 +155,25 @@ while running:
             pipe_x = 400
             
     # D. Drawing
-    # Background image
+    # 1. Draw Background
     screen.blit(bg_image, (0, 0))
     
-    # 2. Draw Pipes (Green)
-    pygame.draw.rect(screen, (0, 200, 0), pipe_top_rect)
-    pygame.draw.rect(screen, (0, 200, 0), pipe_bottom_rect)
+    # 2. Draw Pipes
+    screen.blit(top_pipe_image, (pipe_x, pipe_top_height - top_pipe_image.get_height()))
+    screen.blit(bottom_pipe_image, (pipe_x, pipe_top_height + pipe_gap))
     
-    # 3. Draw Ground Line
-    pygame.draw.rect(screen, (34, 139, 34), (0, 550, 400, 50))
+    # 3. Draw base
+    screen.blit(base_image, (0, 550))
     
-    # 4. Draw Bird (Red Circle)
-    pygame.draw.circle(screen, (255, 0, 0), (bird_x, int(bird_y)), 20)
+    # 4. Draw Bird 
+    screen.blit(bird_image, (bird_x - 20, int(bird_y) - 20))
 
     # 5. UI Text
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))
     screen.blit(score_text, (20, 20))
 
     if not game_active:
-        over_text = font.render("MISSION FAILURE", True, (200, 0, 0))
+        over_text = font.render("Game Over", True, (200, 0, 0))
         retry_text = font.render("Open hand to restart", True, (255, 255, 255))
         screen.blit(over_text, (80, 260))
         screen.blit(retry_text, (50, 300))
