@@ -7,13 +7,22 @@ from mediapipe.tasks.python import vision as mp_vision
 
 pygame.init()
 screen = pygame.display.set_mode((400, 600))
-pygame.display.set_caption("Gesture Flappy Bird") # Title of the game window
+pygame.display.set_caption("Hand Gesture Flappy Bird") # Title of the game window
 clock = pygame.time.Clock()
 
 # MediaPipe Setup
 base_options = mp_python.BaseOptions(model_asset_path='hand_landmarker.task')
 options = mp_vision.HandLandmarkerOptions(base_options=base_options, num_hands=1)
 hand_detector = mp_vision.HandLandmarker.create_from_options(options)
+HAND_CONNECTIONS = frozenset([
+    (0, 1), (1, 2), (2, 3), (3, 4),       # Thumb
+    (5, 6), (6, 7), (7, 8),                # Index
+    (9, 10), (10, 11), (11, 12),           # Middle
+    (13, 14), (14, 15), (15, 16),          # Ring
+    (17, 18), (18, 19), (19, 20),          # Pinky
+    (0, 5), (5, 9), (9, 13), (13, 17),    # Palm
+    (0, 17),                               # Palm base
+])
 cap = cv2.VideoCapture(1)  # Switch camera if needed
 
 # 2. Game Variables
@@ -86,19 +95,27 @@ while running:
             # Hand is only "Open" if all three are up!
             if index_up and middle_up and ring_up:
                 hand_is_open = True
-            else:
-                hand_is_open = False
                 
             h, w, _ = frame.shape
-            fingertip_ids = [4, 8, 12, 16, 20]
             
-            for tip_id in fingertip_ids:
-                tip = hand_landmarks[tip_id]
-                cx, cy = int(hand_landmarks[tip_id].x * w), int(hand_landmarks[tip_id].y * h)
-                cv2.circle(frame, (cx, cy), 8, (255, 0, 255), cv2.FILLED)
+            # 1. Draw the Lines 
+            for connection in HAND_CONNECTIONS:
+                start_idx = connection[0]
+                end_idx = connection[1]
                 
-                if tip_id == 8:
-                    cv2.circle(frame, (cx, cy), 10, (0, 255, 255), 2)
+                start_point = hand_landmarks[start_idx]
+                end_point = hand_landmarks[end_idx]
+                
+                cx1, cy1 = int(start_point.x * w), int(start_point.y * h)
+                cx2, cy2 = int(end_point.x * w), int(end_point.y * h)
+                
+                cv2.line(frame, (cx1, cy1), (cx2, cy2), (0, 150, 0), 2)
+                
+            # 2. Draw the Dots 
+            for landmark in hand_landmarks:
+                cx, cy = int(landmark.x * w), int(landmark.y * h)
+                
+                cv2.circle(frame, (cx, cy), 4, (0, 255, 0), cv2.FILLED)
             
         cv2.imshow("Webcam Feed", frame)
         cv2.waitKey(1)
